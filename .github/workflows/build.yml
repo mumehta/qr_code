@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-android:
-    name: Build & Submit Android
+    name: Build & Submit Android → Internal Testing
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -37,3 +37,8 @@ jobs:
           EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET: ${{ vars.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET }}
           EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID }}
           EXPO_PUBLIC_FIREBASE_APP_ID: ${{ vars.EXPO_PUBLIC_FIREBASE_APP_ID }}
+
+      - name: Submit to Play Store (Internal Testing)
+        run: npx eas submit --profile production --platform android --latest --non-interactive
+        env:
+          EXPO_GOOGLE_SERVICE_ACCOUNT_KEY_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_KEY }}
