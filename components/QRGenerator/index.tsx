@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -17,6 +18,7 @@ import {
   ContactData,
   QRTab,
   getContent,
+  getLabel,
   isValid,
 } from '@/lib/qr';
 
@@ -51,32 +53,64 @@ export function QRGenerator({ onSave }: Props) {
 
   const handleDownload = async () => {
     if (!svgRef.current) return;
+    if (Platform.OS === 'web') {
+      try {
+        svgRef.current.toDataURL((dataUrl: string) => {
+          try {
+            if (!dataUrl) throw new Error('Empty image data.');
+            const link = document.createElement('a');
+            link.href = 'data:image/png;base64,' + dataUrl;
+            link.download = 'qrcode.png';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          } catch {
+            Alert.alert('Error', 'Failed to download QR code. Please try again.');
+          }
+        });
+      } catch {
+        Alert.alert('Error', 'Failed to download QR code. Please try again.');
+      }
+      return;
+    }
     const { status } = await MediaLibrary.requestPermissionsAsync(false, ['photo']);
     if (status !== 'granted') {
       Alert.alert('Permission required', 'Allow access to save QR codes to your photo library.');
       return;
     }
     svgRef.current.toDataURL(async (dataUrl: string) => {
-      const fileUri = FileSystem.cacheDirectory + 'qrcode.png';
-      await FileSystem.writeAsStringAsync(fileUri, dataUrl, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-      await MediaLibrary.saveToLibraryAsync(fileUri);
-      Alert.alert('Saved', 'QR code saved to your photo library.');
+      try {
+        if (!FileSystem.cacheDirectory) throw new Error('Cache directory unavailable.');
+        const fileUri = FileSystem.cacheDirectory + 'qrcode.png';
+        await FileSystem.writeAsStringAsync(fileUri, dataUrl, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        await MediaLibrary.saveToLibraryAsync(fileUri);
+        Alert.alert('Saved', 'QR code saved to your photo library.');
+      } catch {
+        Alert.alert('Error', 'Failed to save QR code. Please try again.');
+      }
     });
   };
 
   const handleCopy = async () => {
-    await Clipboard.setStringAsync(qrContent);
-    Alert.alert('Copied', 'QR content copied to clipboard.');
+    try {
+      await Clipboard.setStringAsync(qrContent);
+      Alert.alert('Copied', 'QR content copied to clipboard.');
+    } catch {
+      Alert.alert('Error', 'Failed to copy to clipboard. Please try again.');
+    }
   };
 
   const handleSave = async () => {
     if (!onSave || !qrContent) return;
     setSaving(true);
     try {
-      await onSave(qrContent, tab, content.slice(0, 40));
+      await onSave(qrContent, tab, getLabel(inputData));
       Alert.alert('Saved', 'QR code added to your history.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to save. Please try again.';
+      Alert.alert('Error', message);
     } finally {
       setSaving(false);
     }
@@ -145,7 +179,7 @@ export function QRGenerator({ onSave }: Props) {
                 placeholder={placeholder}
                 placeholderTextColor={Colors.textMuted}
                 value={contact[key]}
-                onChangeText={(v) => { setContact((c) => ({ ...c, [key]: v })); setQrContent(''); }}
+                onChangeText={(v) => setContact((c) => ({ ...c, [key]: v }))}
               />
             </View>
           ))}

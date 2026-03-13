@@ -17,6 +17,9 @@ web-build/
 .DS_Store
 *.pem
 
+# Claude Code local settings
+.claude/
+
 # EAS
 .eas/build
 

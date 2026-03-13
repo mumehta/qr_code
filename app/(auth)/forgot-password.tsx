@@ -11,23 +11,24 @@ import {
   View,
 } from 'react-native';
 import { Link } from 'expo-router';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth, getAuthErrorMessage } from '@/lib/firebase';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 
-export default function LoginScreen() {
+export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const handleLogin = async () => {
+  const handleReset = async () => {
     setError('');
     if (!email.trim()) { setError('Please enter your email address.'); return; }
-    if (!password) { setError('Please enter your password.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError('Please enter a valid email address.'); return; }
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email.trim(), password);
+      await sendPasswordResetEmail(auth, email.trim());
+      setSent(true);
     } catch (e) {
       setError(getAuthErrorMessage(e));
     } finally {
@@ -44,61 +45,52 @@ export default function LoginScreen() {
         <View style={styles.header}>
           <Text style={styles.logo}>⬡</Text>
           <Text style={styles.title}>QR Forge</Text>
-          <Text style={styles.subtitle}>ENCODE ANYTHING · SCAN EVERYWHERE</Text>
+          <Text style={styles.subtitle}>RESET YOUR PASSWORD</Text>
         </View>
 
         <View style={styles.form}>
-          <View style={styles.field}>
-            <Text style={styles.label}>EMAIL</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="you@example.com"
-              placeholderTextColor={Colors.textMuted}
-              value={email}
-              onChangeText={setEmail}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-            />
-          </View>
+          {sent ? (
+            <View style={styles.confirmationBox}>
+              <Text style={styles.confirmationText}>
+                Check your inbox — a reset link has been sent.
+              </Text>
+            </View>
+          ) : (
+            <>
+              <View style={styles.field}>
+                <Text style={styles.label}>EMAIL</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="you@example.com"
+                  placeholderTextColor={Colors.textMuted}
+                  value={email}
+                  onChangeText={setEmail}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
+                />
+              </View>
 
-          <View style={styles.field}>
-            <Text style={styles.label}>PASSWORD</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor={Colors.textMuted}
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              autoComplete="password"
-            />
-          </View>
+              {error ? <Text style={styles.error}>{error}</Text> : null}
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
+              <Pressable
+                style={[styles.button, loading && styles.buttonDisabled]}
+                onPress={handleReset}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color={Colors.white} />
+                ) : (
+                  <Text style={styles.buttonText}>Send Reset Link →</Text>
+                )}
+              </Pressable>
+            </>
+          )}
 
-          <Link href="/(auth)/forgot-password" asChild>
-            <Pressable style={styles.forgotRow}>
-              <Text style={[styles.linkText, styles.linkHighlight]}>Forgot password?</Text>
-            </Pressable>
-          </Link>
-
-          <Pressable
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <Text style={styles.buttonText}>Sign In →</Text>
-            )}
-          </Pressable>
-
-          <Link href="/(auth)/register" asChild>
+          <Link href="/(auth)/login" asChild>
             <Pressable style={styles.linkRow}>
-              <Text style={styles.linkText}>Don't have an account? </Text>
-              <Text style={[styles.linkText, styles.linkHighlight]}>Sign up</Text>
+              <Text style={styles.linkText}>Back to </Text>
+              <Text style={[styles.linkText, styles.linkHighlight]}>Sign in</Text>
             </Pressable>
           </Link>
         </View>
@@ -136,8 +128,15 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.5 },
   buttonText: { color: Colors.white, fontSize: 15, fontWeight: '600', letterSpacing: 1 },
-  forgotRow: { alignItems: 'flex-end', paddingVertical: Spacing.xs },
   linkRow: { flexDirection: 'row', justifyContent: 'center', paddingTop: Spacing.sm },
   linkText: { color: Colors.textSecondary, fontSize: 13 },
   linkHighlight: { color: Colors.primary },
+  confirmationBox: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.success,
+    borderRadius: Radius.md,
+    padding: Spacing.md,
+  },
+  confirmationText: { color: Colors.success, fontSize: 14, textAlign: 'center', lineHeight: 20 },
 });

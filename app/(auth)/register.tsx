@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { Link } from 'expo-router';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, getAuthErrorMessage } from '@/lib/firebase';
 import { Colors, Radius, Spacing } from '@/constants/theme';
 
 export default function RegisterScreen() {
@@ -24,19 +24,15 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     setError('');
-    if (password !== confirm) {
-      setError('Passwords do not match.');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
+    if (!email.trim()) { setError('Please enter your email address.'); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) { setError('Please enter a valid email address.'); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    if (password !== confirm) { setError('Passwords do not match.'); return; }
     setLoading(true);
     try {
       await createUserWithEmailAndPassword(auth, email.trim(), password);
-    } catch (e: any) {
-      setError(e.message ?? 'Registration failed. Please try again.');
+    } catch (e) {
+      setError(getAuthErrorMessage(e));
     } finally {
       setLoading(false);
     }

@@ -11,9 +11,14 @@ export function useAuth(): AuthState {
   const [state, setState] = useState<AuthState>({ user: null, loading: true });
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setState({ user, loading: false });
-    });
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      (user) => setState({ user, loading: false }),
+      (err) => {
+        console.error('Auth state listener error:', err);
+        setState({ user: null, loading: false });
+      }
+    );
     return unsubscribe;
   }, []);
 

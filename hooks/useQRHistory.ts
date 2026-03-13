@@ -24,6 +24,7 @@ export interface QRHistoryItem {
 export function useQRHistory(uid: string | undefined) {
   const [history, setHistory] = useState<QRHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!uid) {
@@ -37,14 +38,23 @@ export function useQRHistory(uid: string | undefined) {
       orderBy('createdAt', 'desc')
     );
 
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const items = snapshot.docs.map((d) => ({
-        id: d.id,
-        ...(d.data() as Omit<QRHistoryItem, 'id'>),
-      }));
-      setHistory(items);
-      setLoading(false);
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const items = snapshot.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<QRHistoryItem, 'id'>),
+        }));
+        setHistory(items);
+        setLoading(false);
+        setError(null);
+      },
+      (err) => {
+        console.error('Firestore snapshot error:', err);
+        setError('Failed to load QR history. Check your connection and try again.');
+        setLoading(false);
+      }
+    );
 
     return unsubscribe;
   }, [uid]);
@@ -52,12 +62,17 @@ export function useQRHistory(uid: string | undefined) {
   const saveQR = useCallback(
     async (content: string, type: QRTab, label: string) => {
       if (!uid) return;
-      await addDoc(collection(db, 'users', uid, 'qrHistory'), {
-        content,
-        type,
-        label,
-        createdAt: serverTimestamp(),
-      });
+      try {
+        await addDoc(collection(db, 'users', uid, 'qrHistory'), {
+          content,
+          type,
+          label,
+          createdAt: serverTimestamp(),
+        });
+      } catch (err) {
+        console.error('Failed to save QR:', err);
+        throw new Error('Failed to save QR code. Please try again.');
+      }
     },
     [uid]
   );
@@ -65,10 +80,15 @@ export function useQRHistory(uid: string | undefined) {
   const deleteQR = useCallback(
     async (itemId: string) => {
       if (!uid) return;
-      await deleteDoc(doc(db, 'users', uid, 'qrHistory', itemId));
+      try {
+        await deleteDoc(doc(db, 'users', uid, 'qrHistory', itemId));
+      } catch (err) {
+        console.error('Failed to delete QR:', err);
+        throw new Error('Failed to delete QR code. Please try again.');
+      }
     },
     [uid]
   );
 
-  return { history, loading, saveQR, deleteQR };
+  return { history, loading, error, saveQR, deleteQR };
 }

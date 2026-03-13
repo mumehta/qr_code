@@ -16,7 +16,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   },
   ios: {
     supportsTablet: false,
-    bundleIdentifier: 'com.yourcompany.qrforge',
+    bundleIdentifier: 'com.artisanintuition.qrforge',
     infoPlist: {
       NSPhotoLibraryAddUsageDescription:
         'QR Forge saves QR code images to your photo library.',
@@ -27,16 +27,20 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/images/adaptive-icon.png',
       backgroundColor: '#0f0f14',
     },
-    package: 'com.yourcompany.qrforge',
+    package: 'com.artisanintuition.qrforge',
     permissions: [
-      'WRITE_EXTERNAL_STORAGE',
-      'READ_MEDIA_IMAGES',
-      'READ_MEDIA_VIDEO',
-      'READ_MEDIA_AUDIO',
+      'READ_MEDIA_IMAGES', // Required by expo-media-library to save QR images on Android 13+
     ],
   },
   web: {
     bundler: 'metro',
+    favicon: './assets/images/QR_Scanner.png',
+    name: 'QR Forge',
+    shortName: 'QR Forge',
+    description: 'Generate QR codes for URLs, text, and contacts. Save and manage your QR history.',
+    themeColor: '#7c6af7',
+    backgroundColor: '#0f0f14',
+    lang: 'en',
   },
   plugins: [
     'expo-router',
